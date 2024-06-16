@@ -13,6 +13,7 @@ int currtouched = 0;
 
 bool touch_status = 0;
 bool direction = 0; //0 for left, 1 for right
+bool multitouch = 0;
 
 const int touchKey[4] = {"Q","E","1","3"};
 
@@ -50,7 +51,9 @@ void loop() {
     currtouched = log(cap2.touched())/log(2) + 13;
   }
 
-  //Direction detection
+//  Serial.println(currtouched);
+
+  //Touch status and direction detection
   if(abs(lasttouched - currtouched) == 1){
     if(lasttouched - currtouched > 0){
       direction = 0;
@@ -72,9 +75,12 @@ void loop() {
       touch_status = 1;
     }
   }
+//  if(abs(lasttouched - currtouched > 6)){
+//    multitouch = 1;
+//  }
 
   //Key pressing process
-  if(touch_status == 1){
+  if(multitouch == 0 && touch_status == 1){
     if (cap1.touched() == 0 && cap2.touched() == 0){
       Keyboard.release('q');
       Keyboard.release('e');
