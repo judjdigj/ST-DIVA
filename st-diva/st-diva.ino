@@ -17,6 +17,7 @@ bool touch_status = 0;
 bool direction = 0; //0 for left, 1 for right
 bool multitouch = 0;
 
+
 void setup() {
   Serial.begin(9600);
   Keyboard.begin();
@@ -46,7 +47,7 @@ void setup() {
 
 void loop() {
   lasttouched = currtouched;
-  currtouched = TouchFormater();
+  currtouched = touchformat();
 
 
   if(cap1.touched() == 0 && cap2.touched() == 0 && cap3.touched() == 0){
@@ -56,7 +57,7 @@ void loop() {
   }
 
   //Touch status and direction detection
-  if(abs(lasttouched - currtouched) == 1){
+  if(currtouched != 0 && lasttouched != 0 && abs(lasttouched - currtouched) == 1){
     if(lasttouched - currtouched > 0){
       direction = 0;
       touch_status = 1;
@@ -67,35 +68,29 @@ void loop() {
     }
   }
 
-  if(abs(lasttouched - currtouched > 6)){
-    multitouch = 1;
-  }
-
-
   //Single key pressing process
   if(touch_status == 1 && multitouch == 0){
     if(direction == 0){
       Keyboard.release('e');
       Keyboard.press('q');
     }
-    else{
+    else if(direction == 1){
       Keyboard.release('q');
       Keyboard.press('e');
     }
   }
-
-
+}
 
 //Formatted touch into a 1-32
-int TouchFormater(){
+int touchformat(){
   if(cap1.touched() != 0 && cap2.touched() == 0 && cap3.touched() == 0){
-    return currtouched = log(cap1.touched())/log(2) + 1;
+    return log(cap1.touched())/log(2) + 1;
   }
   if(cap1.touched() == 0 && cap2.touched() != 0 && cap3.touched() == 0){
-    return currtouched = log(cap2.touched())/log(2) + 13;
+    return log(cap2.touched())/log(2) + 13;
   }
   if(cap1.touched() == 0 && cap2.touched() == 0 && cap3.touched() != 0){
-    return currtouched = log(cap3.touched())/log(2) + 25;
+    return log(cap3.touched())/log(2) + 25;
   }
   if(cap1.touched() == 0 && cap2.touched() == 0 && cap3.touched() == 0){
     return 0;
