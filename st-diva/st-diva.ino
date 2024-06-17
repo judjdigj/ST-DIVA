@@ -1,98 +1,109 @@
 #include <Keyboard.h>
 #include <Wire.h>
 #include "Adafruit_MPR121.h"
+
+#ifndef _BV
+#define _BV(bit) (1 << (bit)) 
+#endif
+
 Adafruit_MPR121 cap1 = Adafruit_MPR121();
 Adafruit_MPR121 cap2 = Adafruit_MPR121();
 Adafruit_MPR121 cap3 = Adafruit_MPR121();
 
-int lasttouched = 0;
-int currtouched = 0;
+bool l_direction = 0;
+bool r_direction = 0;
 
-int l_lasttouched = 0;
-int l_currtouched = 0;
-int r_lasttouched = 0;
-int r_currtouched = 0;
 
-bool touch_status = 0;
-bool direction = 0; //0 for left, 1 for right
-bool multitouch = 0;
+int currtouched1 = 0;
+int lasttouched1 = 0;
 
+int currtouched2 = 0;
+int lasttouched2 = 0;
+
+int currtouched3 = 0;
+int lasttouched3 = 0;
+
+int r_touch1 = 0;
+int l_touch2 = 0;
+int r_touch2 = 0;
+
+
+bool touchpad[36] = {0};
+int touch_status[4] = {0};
 
 void setup() {
   Serial.begin(9600);
+  cap1.begin(0x5A);
+  cap2.begin(0x5B);
+  cap3.begin(0x5C);
   Keyboard.begin();
-  while (!Serial) { // needed to keep leonardo/micro from starting too fast!
-    delay(10);
-  }
-
-  if (!cap1.begin(0x5A)) {
-    Serial.println("MPR121 0x5A not found, check wiring?");
-    while (1);
-  }
-  Serial.println("MPR121 0x5A found!");
-
-  if (!cap2.begin(0x5B)) {
-    Serial.println("MPR121 0x5C not found, check wiring?");
-    while (1);
-  }
-  Serial.println("MPR121 0x5C found!");
-
-  if (!cap3.begin(0x5C)) {
-    Serial.println("MPR121 0x5C not found, check wiring?");
-    while (1);
-  }
-  Serial.println("MPR121 0x5C found!");
 }
 
 
 void loop() {
-  lasttouched = currtouched;
-  currtouched = touchformat();
+  touchpadReader();
 
-
-  if(cap1.touched() == 0 && cap2.touched() == 0 && cap3.touched() == 0){
-    touch_status = 0;
-    Keyboard.release('q');
-    Keyboard.release('e');   
-  }
-
-  //Touch status and direction detection
-  if(currtouched != 0 && lasttouched != 0 && abs(lasttouched - currtouched) == 1){
-    if(lasttouched - currtouched > 0){
-      direction = 0;
-      touch_status = 1;
-    }
-    else if(lasttouched - currtouched < 0){
-      direction = 1;
-      touch_status = 1;
+//Touch status array generate;
+  uint16_t j = 0;
+  for(uint16_t i=0; i<36; i++){
+    if(touchpad[i]){
+      if(j<4){
+        touch_status[j] = i;
+        j++;
+      }
     }
   }
 
-  //Single key pressing process
-  if(touch_status == 1 && multitouch == 0){
-    if(direction == 0){
-      Keyboard.release('e');
-      Keyboard.press('q');
-    }
-    else if(direction == 1){
-      Keyboard.release('q');
-      Keyboard.press('e');
-    }
+//Touch status array dealing
+  for(uint16_t i=0; i<4; i++){
+    Serial.print(touch_status[i]);
+    Serial.print("      ");
+  }
+  Serial.println();
+
+//Initialize touch status array
+  for(uint16_t i=0; i<4; i++){
+    touch_status[i] = 0;
   }
 }
 
-//Formatted touch into a 1-32
-int touchformat(){
-  if(cap1.touched() != 0 && cap2.touched() == 0 && cap3.touched() == 0){
-    return log(cap1.touched())/log(2) + 1;
+void touchpadReader(){
+  lasttouched1 = currtouched1;
+  currtouched1 = cap1.touched();
+  for (uint8_t i=0; i<12; i++) {
+    // it if *is* touched and *wasnt* touched before, alert!
+    if ((currtouched1 & _BV(i)) && !(lasttouched1 & _BV(i)) ) {
+      touchpad[i] = 1;
+    }
+    // if it *was* touched and now *isnt*, alert!
+    if (!(currtouched1 & _BV(i)) && (lasttouched1 & _BV(i)) ) {
+      touchpad[i] = 0;
+    }
   }
-  if(cap1.touched() == 0 && cap2.touched() != 0 && cap3.touched() == 0){
-    return log(cap2.touched())/log(2) + 13;
+
+  lasttouched2 = currtouched2;
+  currtouched2 = cap2.touched();
+  for (uint8_t i=0; i<12; i++) {
+    // it if *is* touched and *wasnt* touched before, alert!
+    if ((currtouched2 & _BV(i)) && !(lasttouched2 & _BV(i)) ) {
+      touchpad[i+12] = 1;
+    }
+    // if it *was* touched and now *isnt*, alert!
+    if (!(currtouched2 & _BV(i)) && (lasttouched2 & _BV(i)) ) {
+      touchpad[i+12] = 0;
+    }
   }
-  if(cap1.touched() == 0 && cap2.touched() == 0 && cap3.touched() != 0){
-    return log(cap3.touched())/log(2) + 25;
-  }
-  if(cap1.touched() == 0 && cap2.touched() == 0 && cap3.touched() == 0){
-    return 0;
+
+  lasttouched3 = currtouched3;
+  currtouched3 = cap3.touched();
+  for (uint8_t i=0; i<12; i++) {
+    // it if *is* touched and *wasnt* touched before, alert!
+    if ((currtouched3 & _BV(i)) && !(lasttouched3 & _BV(i)) ) {
+      touchpad[i+24] = 1;
+    }
+    // if it *was* touched and now *isnt*, alert!
+    if (!(currtouched3 & _BV(i)) && (lasttouched3 & _BV(i)) ) {
+      touchpad[i+24] = 0;
+    }
   }
 }
