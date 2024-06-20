@@ -10,26 +10,20 @@ Adafruit_MPR121 cap1 = Adafruit_MPR121();
 Adafruit_MPR121 cap2 = Adafruit_MPR121();
 Adafruit_MPR121 cap3 = Adafruit_MPR121();
 
-bool l_direction = 0;
-bool r_direction = 0;
+bool direction_1 = 0;
+bool direction_2 = 0;
 
+int curr_1[2] = {0};
+int curr_2[2] = {0};
+int last_1[2] = {0};
+int last_2[2] = {0};
 
-int currtouched1 = 0;
-int lasttouched1 = 0;
-
-int currtouched2 = 0;
-int lasttouched2 = 0;
-
-int currtouched3 = 0;
-int lasttouched3 = 0;
-
-int r_touch1 = 0;
-int l_touch2 = 0;
-int r_touch2 = 0;
-
+unsigned long lastTask1Time = 0;
+unsigned long lastTask2Time = 0;
 
 bool touchpad[36] = {0};
-int touch_status[4] = {0};
+
+uint16_t thresholds = 105;
 
 void setup() {
   Serial.begin(9600);
@@ -41,33 +35,48 @@ void setup() {
 
 
 void loop() {
-  touchpadReader();
+  touchpadReaderRAW();
 
-//Touch status array generate;
-  uint16_t j = 0;
-  for(uint16_t i=0; i<36; i++){
+  //Last = Curr
+  for(uint16_t i=0; i<2; i++){
+    last_1[i] = curr_1[i];
+    last_2[i] = curr_2[i];
+    curr_1[i] = 0;
+    curr_2[i] = 0;
+  }
+
+  //Itering touch status
+  uint16_t j=0;
+  for(uint16_t i=0; i<12; i++){
     if(touchpad[i]){
-      if(j<4){
-        touch_status[j] = i;
+      if(j<2){
+        curr_1[j] = i;
         j++;
       }
     }
   }
 
-//Touch status array dealing
-  for(uint16_t i=0; i<4; i++){
-    Serial.print(touch_status[i]);
-    Serial.print("      ");
+  //Slide status
+  if(curr_1[0] - last_1[0] == 1 && curr_1[1] - last_1[1] == 1){
+    Serial.println("Slide right");
   }
-  Serial.println();
-
-//Initialize touch status array
-  for(uint16_t i=0; i<4; i++){
-    touch_status[i] = 0;
+  if(curr_1[0] - last_1[0] == -1 && curr_1[1] - last_1[1] == -1){
+    Serial.println("Slide left");
+  }
+  if(curr_1[0] == last_1[0] && curr_1[1] == last_1[1]){
+    Serial.println("Touched");
   }
 }
 
 void touchpadReader(){
+  uint16_t lasttouched1 = 0;
+  uint16_t currtouched1 = 0;
+  uint16_t lasttouched2 = 0;
+  uint16_t currtouched2 = 0;
+  uint16_t lasttouched3 = 0;
+  uint16_t currtouched3 = 0;
+
+
   lasttouched1 = currtouched1;
   currtouched1 = cap1.touched();
   for (uint8_t i=0; i<12; i++) {
@@ -104,6 +113,33 @@ void touchpadReader(){
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched3 & _BV(i)) && (lasttouched3 & _BV(i)) ) {
       touchpad[i+24] = 0;
+    }
+  }
+}
+
+void touchpadReaderRAW(){
+  for(uint8_t i=0; i<12; i++){
+    if(cap1.filteredData(i) > thresholds){
+      touchpad[i] = 0;
+    }
+    else{
+      touchpad[i] = 1;
+    }
+  }
+  for (uint8_t i=0; i<12; i++){
+    if(cap2.filteredData(i) > thresholds){
+      touchpad[i+12] = 0;
+    }
+    else{
+      touchpad[i+12] = 1;
+    }
+  }
+  for (uint8_t i=0; i<12; i++){
+    if(cap3.filteredData(i) > thresholds){
+      touchpad[i+24] = 0;
+    }
+    else{
+      touchpad[i+24] = 1;
     }
   }
 }

@@ -48,13 +48,13 @@ void setup() {
   
   // Default address is 0x5A, if tied to 3.3V its 0x5B
   // If tied to SDA its 0x5C and if SCL then 0x5D
-  if (!cap.begin(0x5A)) {
-    Serial.println("MPR121 not found, check wiring?");
-    while (1);
-  }
-  Serial.println("MPR121 found!");
+  cap.begin(0x5A);
+  cap.setThresholds(6,12);
   cap2.begin(0x5B);
+  cap2.setThresholds(6,12);
   cap3.begin(0x5C);
+  cap3.setThresholds(6,12);
+
 }
 
 void loop() {
@@ -77,8 +77,10 @@ void loop() {
   lasttouched = currtouched;
 
   // comment out this line for detailed data from the sensor!
-  return;
+//  return;
   
+
+
   // debugging info, what
   Serial.print("\t\t\t\t\t\t\t\t\t\t\t\t\t 0x"); Serial.println(cap.touched(), HEX);
   Serial.print("Filt: ");
