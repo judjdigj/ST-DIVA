@@ -2,6 +2,8 @@
 #include <Wire.h>
 #include "Adafruit_MPR121.h"
 
+//#define DEBUG
+
 #ifndef _BV
 #define _BV(bit) (1 << (bit)) 
 #endif
@@ -22,8 +24,9 @@ unsigned long lastTask1Time = 0;
 unsigned long lastTask2Time = 0;
 
 bool touchpad[36] = {0};
-
-uint16_t thresholds = 105;
+int touch_status[4] = {0};
+bool iftouched = 0;
+uint16_t thresholds = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -31,12 +34,21 @@ void setup() {
   cap2.begin(0x5B);
   cap3.begin(0x5C);
   Keyboard.begin();
+  touchCalibrate();
 }
 
 
 void loop() {
   touchpadReaderRAW();
 
+  #ifdef DEBUG
+  for(uint16_t i=0; i<36; i++){
+    Serial.print(touchpad[i]);
+  }
+  Serial.println(" ");
+  #endif
+
+  #ifndef DEBUG
   //Last = Curr
   for(uint16_t i=0; i<2; i++){
     last_1[i] = curr_1[i];
@@ -47,25 +59,34 @@ void loop() {
 
   //Itering touch status
   uint16_t j=0;
-  for(uint16_t i=0; i<12; i++){
+  iftouched = 0;
+  for(uint16_t i=0; i<36; i++){
     if(touchpad[i]){
-      if(j<2){
-        curr_1[j] = i;
+      if(j<4){
+        touch_status[j] = i;  //4 point maximium
         j++;
+        iftouched = 1;
       }
     }
   }
 
+  if(!iftouched){
+    for(uint16_t i=0; i<4; i++){
+      touch_status[i] = 0;
+    }
+  }
+
+  //Storage touched sensor into batch
+  for(uint16_t i=0; i<2; i++){
+    curr_1[i] = touch_status[i];
+    curr_2[i] = touch_status[i+2];
+  }
   //Slide status
-  if(curr_1[0] - last_1[0] == 1 && curr_1[1] - last_1[1] == 1){
-    Serial.println("Slide right");
-  }
-  if(curr_1[0] - last_1[0] == -1 && curr_1[1] - last_1[1] == -1){
-    Serial.println("Slide left");
-  }
-  if(curr_1[0] == last_1[0] && curr_1[1] == last_1[1]){
-    Serial.println("Touched");
-  }
+
+
+  slideDetect(curr_1[0], last_1[0], curr_1[1], last_1[1]);
+
+  #endif
 }
 
 void touchpadReader(){
@@ -142,4 +163,28 @@ void touchpadReaderRAW(){
       touchpad[i+24] = 1;
     }
   }
+}
+
+void slideDetect(int x, int y, int x1, int y1){
+  if(x + y + x1 + y1 == 0){
+    Keyboard.releaseAll();
+  }
+  else if(x - y == 1 && x1 - y1 == 1){
+    Keyboard.release('q');
+    Keyboard.press('e');
+  }
+  else if(x - y == -1 && x1 - y1 == -1){
+    Keyboard.release('e');
+    Keyboard.press('q');
+  }
+}
+
+void touchCalibrate(){
+  uint16_t total = 0;
+  for(uint16_t j=0; j<3; j++){
+    for(uint16_t i=0; i<12; i++){
+      total = total + cap1.filteredData(i);
+    }
+  }
+  thresholds = total/36 - 40;
 }
