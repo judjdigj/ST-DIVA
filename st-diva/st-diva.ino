@@ -27,6 +27,7 @@ bool touchpad[36] = {0};
 int touch_status[4] = {0};
 bool iftouched = 0;
 uint16_t thresholds = 0;
+uint16_t multiTouchGap = 2;
 
 void setup() {
   Serial.begin(9600);
@@ -40,7 +41,7 @@ void setup() {
 
 void loop() {
   touchpadReaderRAW();
-
+  bool multiTouch = 0;
   #ifdef DEBUG
   for(uint16_t i=0; i<36; i++){
     Serial.print(touchpad[i]);
@@ -70,6 +71,7 @@ void loop() {
     }
   }
 
+  //Save touch status
   if(!iftouched){
     for(uint16_t i=0; i<4; i++){
       touch_status[i] = 0;
@@ -77,15 +79,39 @@ void loop() {
   }
 
   //Storage touched sensor into batch
-  for(uint16_t i=0; i<2; i++){
-    curr_1[i] = touch_status[i];
-    curr_2[i] = touch_status[i+2];
+  if(abs(touch_status[0] - touch_status[1]) > multiTouchGap){
+    curr_1[0] = touch_status[0];
+    for(uint16_t i=0; i<2; i++){
+      curr_2[i] = touch_status[i+1];
+    }
   }
+  else{
+    for(uint16_t i=0; i<2; i++){
+      curr_1[i] = touch_status[i];
+      curr_2[i] = touch_status[i+2];
+    }
+  }
+
+  //multitouch detect
+  for(uint16_t i=0; i<2; i++){
+    if(curr_2[i] != 0 && curr_2[0] - curr_1[1] > multiTouchGap){
+      multiTouch = 1;
+    }
+  }
+
   //Slide status
+  //Async on keypressing to avoid noise, not detect part.
 
-
-  slideDetect(curr_1[0], last_1[0], curr_1[1], last_1[1]);
-
+//  slideDetect(curr_1[0], last_1[0], curr_1[1], last_1[1]);
+  Serial.println(multiTouch);
+  for(uint16_t i=0; i<6; i++){
+    Serial.print(touchpad[i]);
+  }
+  Serial.print(" ");
+  for(uint16_t i=0; i<4; i++){
+    Serial.print(touch_status[i]);
+  }
+  Serial.println(" ");
   #endif
 }
 
@@ -182,9 +208,9 @@ void slideDetect(int x, int y, int x1, int y1){
 void touchCalibrate(){
   uint16_t total = 0;
   for(uint16_t j=0; j<3; j++){
-    for(uint16_t i=0; i<12; i++){
+    for(uint16_t i=0; i<6; i++){
       total = total + cap1.filteredData(i);
     }
   }
-  thresholds = total/36 - 40;
+  thresholds = total/18 - 20;
 }
