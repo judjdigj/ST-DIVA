@@ -12,22 +12,21 @@ Adafruit_MPR121 cap1 = Adafruit_MPR121();
 Adafruit_MPR121 cap2 = Adafruit_MPR121();
 Adafruit_MPR121 cap3 = Adafruit_MPR121();
 
-bool direction_1 = 0;
-bool direction_2 = 0;
+int direction = 0
 
 int curr_1[2] = {0};
 int curr_2[2] = {0};
 int last_1[2] = {0};
 int last_2[2] = {0};
 
-unsigned long lastTask1Time = 0;
-unsigned long lastTask2Time = 0;
+unsigned long lastTaskTime = 0;
 
 bool touchpad[36] = {0};
 int touch_status[4] = {0};
 bool iftouched = 0;
 uint16_t thresholds = 0;
 uint16_t multiTouchGap = 2;
+unsigned long interval = 200;//ms
 
 void setup() {
   Serial.begin(9600);
@@ -42,6 +41,7 @@ void setup() {
 void loop() {
   touchpadReaderRAW();
   bool multiTouch = 0;
+  
   #ifdef DEBUG
   for(uint16_t i=0; i<36; i++){
     Serial.print(touchpad[i]);
@@ -102,16 +102,12 @@ void loop() {
   //Slide status
   //Async on keypressing to avoid noise, not detect part.
 
-//  slideDetect(curr_1[0], last_1[0], curr_1[1], last_1[1]);
-  Serial.println(multiTouch);
-  for(uint16_t i=0; i<6; i++){
-    Serial.print(touchpad[i]);
-  }
-  Serial.print(" ");
-  for(uint16_t i=0; i<4; i++){
-    Serial.print(touch_status[i]);
-  }
-  Serial.println(" ");
+  unsigned long currentTime = millis();
+  if (currentTime - lastTaskTime >= interval){
+    lastTaskTime = currentTime;
+    slideDetect(curr_1[0], last_1[0], curr_1[1], last_1[1]);
+    }
+
   #endif
 }
 
@@ -191,16 +187,27 @@ void touchpadReaderRAW(){
   }
 }
 
-void slideDetect(int x, int y, int x1, int y1){
-  if(x + y + x1 + y1 == 0){
-    Keyboard.releaseAll();
+int directionDetect(int x, int y, int x1, int y1){
+  if(x + y + x1 + y1 = 0){
+    return -2;
   }
   else if(x - y == 1 && x1 - y1 == 1){
-    Keyboard.release('q');
-    Keyboard.press('e');
+    return 1;
   }
   else if(x - y == -1 && x1 - y1 == -1){
-    Keyboard.release('e');
+    return -1;
+  }
+  else{
+    return 0;
+  }
+}
+
+void keyboardPressing(int x){
+  if(x=1){
+    Keyboard.press('e');
+    Keyboard.release('q');
+  }
+  if(x=-1){
     Keyboard.press('q');
   }
 }
@@ -212,5 +219,5 @@ void touchCalibrate(){
       total = total + cap1.filteredData(i);
     }
   }
-  thresholds = total/18 - 20;
+  thresholds = total/18 - 40;
 }
