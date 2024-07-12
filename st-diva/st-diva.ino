@@ -47,11 +47,26 @@ int direction2 = 0;
 
 void setup() {
   Serial.begin(9600);
+
   cap1.begin(0x5A);
+  delay(300);
   cap2.begin(0x5B);
+  delay(300);
   cap3.begin(0x5C);
+  delay(300);
   Keyboard.begin();
+
+  pinMode(18, OUTPUT);
+  pinMode(19, OUTPUT);
+  pinMode(20, OUTPUT);
+  pinMode(21, OUTPUT);
+  pinMode(6, INPUT_PULLUP);  
+  pinMode(7, INPUT_PULLUP);  
+  pinMode(8, INPUT_PULLUP);  
+  pinMode(9, INPUT_PULLUP);  
+
   delay(1000);
+
 ///  touchCalibrate();
 }
 
@@ -213,7 +228,7 @@ void loop() {
   }
 
   //ButtonInput
-  
+  buttonInput();
 
 #endif
 }
@@ -312,4 +327,24 @@ void touchCalibrate(){
     }
   }
   thresholds = total/36 - 40;
+}
+
+void buttonInput(){
+  if(digitalRead(6) == HIGH){
+    digitalWrite(18, LOW);
+    Keyboard.release('w');
+  }
+  else{
+    digitalWrite(18, HIGH);
+    Keyboard.press('w');
+  }
+
+  if(digitalRead(7) == HIGH){
+    digitalWrite(18, LOW);
+    Keyboard.release('a');
+  }
+  else{
+    digitalWrite(18, HIGH);
+    Keyboard.press('a');
+  }
 }
