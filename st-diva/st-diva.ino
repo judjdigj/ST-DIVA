@@ -25,7 +25,6 @@ unsigned long lastTask2Time = 0;
 
 bool touchpad[36] = {0};
 int touch_status[4] = {0};
-bool iftouched = 0;
 uint16_t thresholds = 0;
 
 uint16_t lasttouched1 = 0;
@@ -35,8 +34,16 @@ uint16_t currtouched2 = 0;
 uint16_t lasttouched3 = 0;
 uint16_t currtouched3 = 0;
 
-int curr = 0;
-int last = 0;
+int curr1 = 0;
+int last1 = 0;
+int curr2 = 0;
+int last2 = 0;
+
+int touchpoint1 = 0;
+int touchpoint2 = 0;
+
+int direction1 = 0;
+int direction2 = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -59,26 +66,156 @@ void loop() {
   Serial.println(" ");
   #endif
 
-  #ifndef DEBUG
   //Last = Curr
-  last = curr;
-  curr = 0;
-
+  last1 = curr1;
+  last2 = curr2;
+  curr1 = 0;
+  curr2 = 0;
   //Itering touch status
-  for(uint16_t i=0; i<36; i++){
+  int tmp = 0;
+  int j = 0;
+  bool reverse = 0;
+  bool iftouched = false;
+  for(int i=0; i<36; i++){
     if(touchpad[i]){
-      curr = i;  //4 point maximium
-      iftouched = 1;
+      iftouched = true;
+      if(touchpoint1 == 0){
+        touchpoint1 = i;
+        j = i;
+        break;
+      }
+      else if(touchpoint2 == 0){
+        if(abs(touchpoint1 - i) <= 1){
+          touchpoint1 = i;
+          j = i;
+          break;
+        }
+        else{
+          touchpoint2 = i;
+          j = i;
+          break;
+        }
+      }
+      else{
+        if(abs(i-touchpoint2)<=1){
+          touchpoint2 = i;
+          j = i;
+          reverse = 1;
+          break;
+        }
+        else{
+          touchpoint1 = i;
+          j = i;
+          break;
+        }
+      }
     }
   }
+
+  if(j != 0){
+    for(int i = j+10; i<36; i++){
+      if(touchpad[i]){
+        if(touchpoint2 == 0){
+          touchpoint2 = i;
+          break;
+        }
+        else{
+          if(abs(i - touchpoint1) <= 1){
+            reverse = 1;
+            touchpoint1 = i;
+            break;
+          }
+          else{
+            touchpoint2 = i;
+            break;
+          }
+        }
+      }
+    }
+  }
+#ifdef DEBUG
+
+  Serial.print("touchpoint1 = ");
+  Serial.println(touchpoint1);
+  Serial.print("touchpoint2 = ");
+  Serial.println(touchpoint2);
+#endif
+
+
  //direction detection
-  if(iftouched){
-    slideDetect(curr, last);
+  if(!iftouched){
+    touchpoint1 = 0;
+    touchpoint2 = 0;
+    direction1 = -2;
+    direction2 = -2;
+  }
+
+
+#ifndef DEBUG
+
+  else if(touchpoint2 == 0){
+    curr1 = touchpoint1;
+    direction1 = slideDetect(curr1, last1);
+    direction2 = -2;
+  }
+  else{
+    curr1 = touchpoint1;
+    curr2 = touchpoint2;
+    direction1 = slideDetect(curr1, last1);
+    direction2 = slideDetect(curr2, last2);
   }
 
   //Slide status
+  if(!iftouched){
+    Keyboard.releaseAll();
+  }
+  else{
+    switch(direction1){
+      case -2:{
+        Keyboard.release('e');
+        Keyboard.release('q');
+        break;
+      }
+      case -1:{
+        Keyboard.press('q');
+        Keyboard.release('e');
+        break;
+      }
+      case 1:{
+        Keyboard.press('e');
+        Keyboard.release('q');
+        break; 
+      }
+      case 0:{
+        break;
+      }
+    }
+    switch(direction2){
+      case -2:{
+        Keyboard.release('u');
+        Keyboard.release('o');
+        break;
+      }
+      case -1:{
+        Keyboard.press('u');
+        Keyboard.release('o');
+        break;
+      }
+      case 1:{
+        Keyboard.press('o');
+        Keyboard.release('u');
+        break; 
+      }
+      case 0:{
+        break;
+      }
+    }
+  }
 
-  #endif
+  //ButtonInput
+  
+
+#endif
 }
 
 void touchpadReader(){
@@ -151,18 +288,19 @@ void touchpadReaderRAW(){
   }
 }
 
-void slideDetect(int x, int y){
-  Serial.print("Direction: ");
+int slideDetect(int x, int y){
+  //Serial.print("Direction: ");
   if(x + y == 0){
-    Keyboard.releaseAll();
+    return -2;
   }
   else if(x - y == 1){
-    Keyboard.press('e');
-    Keyboard.release('q');
+    return 1;
   }
   else if(x - y == -1){
-    Keyboard.press('q');
-    Keyboard.release('e');
+    return -1;
+  }
+  else{
+    return 0;
   }
 }
 
