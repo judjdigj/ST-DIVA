@@ -100,7 +100,7 @@ void loop() {
         break;
       }
       else if(touchpoint2 == 0){
-        if(abs(touchpoint1 - i) <= 1){
+        if(abs(touchpoint1 - i) <= 2){
           touchpoint1 = i;
           j = i;
           break;
@@ -112,7 +112,7 @@ void loop() {
         }
       }
       else{
-        if(abs(i-touchpoint2)<=1){
+        if(abs(i-touchpoint2)<=2){
           touchpoint2 = i;
           j = i;
           reverse = 1;
@@ -135,7 +135,7 @@ void loop() {
           break;
         }
         else{
-          if(abs(i - touchpoint1) <= 1){
+          if(abs(i - touchpoint1) <= 2){
             reverse = 1;
             touchpoint1 = i;
             break;
@@ -149,11 +149,13 @@ void loop() {
     }
   }
 #ifdef DEBUG
-
+/*
   Serial.print("touchpoint1 = ");
   Serial.println(touchpoint1);
   Serial.print("touchpoint2 = ");
   Serial.println(touchpoint2);
+*/
+
 #endif
 
 
@@ -182,7 +184,10 @@ void loop() {
 
   //Slide status
   if(!iftouched){
-    Keyboard.releaseAll();
+    Keyboard.release('e');
+    Keyboard.release('q');
+    Keyboard.release('u');
+    Keyboard.release('o');
   }
   else{
     switch(direction1){
@@ -308,10 +313,10 @@ int slideDetect(int x, int y){
   if(x + y == 0){
     return -2;
   }
-  else if(x - y == 1){
+  else if(x - y > 0 && x - y < 2){
     return 1;
   }
-  else if(x - y == -1){
+  else if(x - y < 0 && x - y > -2){
     return -1;
   }
   else{
@@ -340,11 +345,30 @@ void buttonInput(){
   }
 
   if(digitalRead(7) == HIGH){
-    digitalWrite(18, LOW);
+    digitalWrite(19, LOW);
     Keyboard.release('a');
   }
   else{
-    digitalWrite(18, HIGH);
+    digitalWrite(19, HIGH);
     Keyboard.press('a');
   }
+
+  if(digitalRead(8) == HIGH){
+    digitalWrite(20, LOW);
+    Keyboard.release('s');
+  }
+  else{
+    digitalWrite(20, HIGH);
+    Keyboard.press('s');
+  }
+
+  if(digitalRead(9) == HIGH){
+    digitalWrite(21, LOW);
+    Keyboard.release('d');
+  }
+  else{
+    digitalWrite(21, HIGH);
+    Keyboard.press('d');
+  }
+  Serial.println("  ");
 }
