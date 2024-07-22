@@ -1,4 +1,7 @@
-#include <Keyboard.h>
+#include <XInput.h>
+
+#include <Adafruit_NeoPixel.h>
+
 #include <Wire.h>
 #include "Adafruit_MPR121.h"
 
@@ -7,6 +10,15 @@
 #ifndef _BV
 #define _BV(bit) (1 << (bit)) 
 #endif
+
+#define LED_PIN    0
+#define LED_COUNT 30
+
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+uint32_t magenta = strip.Color(255, 0, 255);
+uint32_t black = strip.Color(0, 0, 0);
+
 
 Adafruit_MPR121 cap1 = Adafruit_MPR121();
 Adafruit_MPR121 cap2 = Adafruit_MPR121();
@@ -23,7 +35,7 @@ int last_2[2] = {0};
 unsigned long lastTask1Time = 0;
 unsigned long lastTask2Time = 0;
 
-bool touchpad[36] = {0};
+bool touchpad[30] = {0};
 int touch_status[4] = {0};
 uint16_t thresholds = 0;
 
@@ -46,26 +58,28 @@ int direction1 = 0;
 int direction2 = 0;
 
 void setup() {
-  Serial.begin(9600);
+
+  pinMode(6, INPUT_PULLUP); 
+  pinMode(7, INPUT_PULLUP); 
+  pinMode(8, INPUT_PULLUP); 
+  pinMode(9, INPUT_PULLUP); 
 
   cap1.begin(0x5A);
-  delay(300);
   cap2.begin(0x5B);
-  delay(300);
   cap3.begin(0x5C);
-  delay(300);
-  Keyboard.begin();
+  XInput.begin();
+  delay(500);
 
-  pinMode(18, OUTPUT);
-  pinMode(19, OUTPUT);
-  pinMode(20, OUTPUT);
-  pinMode(21, OUTPUT);
-  pinMode(6, INPUT_PULLUP);  
-  pinMode(7, INPUT_PULLUP);  
-  pinMode(8, INPUT_PULLUP);  
-  pinMode(9, INPUT_PULLUP);  
-
+  strip.begin();
+  strip.show();
+  strip.setBrightness(64);
+  for(int i=29; i>=0;i--){
+    strip.setPixelColor(i, magenta);
+    strip.show();
+    delay(30);
+  }
   delay(1000);
+  strip.fill(black, 0, 30);
 
 ///  touchCalibrate();
 }
@@ -75,7 +89,7 @@ void loop() {
   touchpadReader();
 
   #ifdef DEBUG
-  for(uint16_t i=0; i<36; i++){
+  for(uint16_t i=0; i<30; i++){
     Serial.print(touchpad[i]);
   }
   Serial.println(" ");
@@ -91,7 +105,7 @@ void loop() {
   int j = 0;
   bool reverse = 0;
   bool iftouched = false;
-  for(int i=0; i<36; i++){
+  for(int i=0; i<30; i++){
     if(touchpad[i]){
       iftouched = true;
       if(touchpoint1 == 0){
@@ -128,7 +142,7 @@ void loop() {
   }
 
   if(j != 0){
-    for(int i = j+10; i<36; i++){
+    for(int i = j+10; i<30; i++){
       if(touchpad[i]){
         if(touchpoint2 == 0){
           touchpoint2 = i;
@@ -184,26 +198,26 @@ void loop() {
 
   //Slide status
   if(!iftouched){
-    Keyboard.release('e');
-    Keyboard.release('q');
-    Keyboard.release('u');
-    Keyboard.release('o');
+    XInput.release(TRIGGER_RIGHT);
+    XInput.release(TRIGGER_LEFT);
+    XInput.release(BUTTON_RB);
+    XInput.release(BUTTON_LB);
   }
   else{
     switch(direction1){
       case -2:{
-        Keyboard.release('e');
-        Keyboard.release('q');
+        XInput.release(BUTTON_RB);
+        XInput.release(BUTTON_LB);
         break;
       }
       case -1:{
-        Keyboard.press('q');
-        Keyboard.release('e');
+        XInput.press(BUTTON_LB);
+        XInput.release(BUTTON_RB);
         break;
       }
       case 1:{
-        Keyboard.press('e');
-        Keyboard.release('q');
+        XInput.press(BUTTON_RB);
+        XInput.release(BUTTON_LB);
         break; 
       }
       case 0:{
@@ -212,18 +226,18 @@ void loop() {
     }
     switch(direction2){
       case -2:{
-        Keyboard.release('u');
-        Keyboard.release('o');
+        XInput.release(TRIGGER_RIGHT);
+        XInput.release(TRIGGER_LEFT);
         break;
       }
       case -1:{
-        Keyboard.press('u');
-        Keyboard.release('o');
+        XInput.press(TRIGGER_LEFT);
+        XInput.release(TRIGGER_RIGHT);
         break;
       }
       case 1:{
-        Keyboard.press('o');
-        Keyboard.release('u');
+        XInput.press(TRIGGER_RIGHT);
+        XInput.release(TRIGGER_LEFT);
         break; 
       }
       case 0:{
@@ -235,22 +249,23 @@ void loop() {
   //ButtonInput
   buttonInput();
 
+
 #endif
 }
 
 void touchpadReader(){
-
-
   lasttouched1 = currtouched1;
   currtouched1 = cap1.touched();
   for (uint8_t i=0; i<12; i++) {
     // it if *is* touched and *wasnt* touched before, alert!
     if ((currtouched1 & _BV(i)) && !(lasttouched1 & _BV(i)) ) {
       touchpad[i] = 1;
+      strip.setPixelColor(29-i, magenta);
     }
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched1 & _BV(i)) && (lasttouched1 & _BV(i)) ) {
       touchpad[i] = 0;
+      strip.setPixelColor(29-i, black);
     }
   }
 
@@ -260,52 +275,30 @@ void touchpadReader(){
     // it if *is* touched and *wasnt* touched before, alert!
     if ((currtouched2 & _BV(i)) && !(lasttouched2 & _BV(i)) ) {
       touchpad[i+12] = 1;
+      strip.setPixelColor(17-i, magenta);
     }
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched2 & _BV(i)) && (lasttouched2 & _BV(i)) ) {
       touchpad[i+12] = 0;
+      strip.setPixelColor(17-i, black);
     }
   }
 
   lasttouched3 = currtouched3;
   currtouched3 = cap3.touched();
-  for (uint8_t i=0; i<12; i++) {
+  for (uint8_t i=0; i<6; i++) {
     // it if *is* touched and *wasnt* touched before, alert!
     if ((currtouched3 & _BV(i)) && !(lasttouched3 & _BV(i)) ) {
       touchpad[i+24] = 1;
+      strip.setPixelColor(5-i, magenta);
     }
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched3 & _BV(i)) && (lasttouched3 & _BV(i)) ) {
       touchpad[i+24] = 0;
+      strip.setPixelColor(5-i, black);
     }
   }
-}
-
-void touchpadReaderRAW(){
-  for(uint8_t i=0; i<12; i++){
-    if(cap1.filteredData(i) > thresholds){
-      touchpad[i] = 0;
-    }
-    else{
-      touchpad[i] = 1;
-    }
-  }
-  for (uint8_t i=0; i<12; i++){
-    if(cap2.filteredData(i) > thresholds){
-      touchpad[i+12] = 0;
-    }
-    else{
-      touchpad[i+12] = 1;
-    }
-  }
-  for (uint8_t i=0; i<12; i++){
-    if(cap3.filteredData(i) > thresholds){
-      touchpad[i+24] = 0;
-    }
-    else{
-      touchpad[i+24] = 1;
-    }
-  }
+  strip.show();
 }
 
 int slideDetect(int x, int y){
@@ -324,51 +317,32 @@ int slideDetect(int x, int y){
   }
 }
 
-void touchCalibrate(){
-  uint16_t total = 0;
-  for(uint16_t j=0; j<3; j++){
-    for(uint16_t i=0; i<12; i++){
-      total = total + cap1.filteredData(i);
-    }
-  }
-  thresholds = total/36 - 40;
-}
-
 void buttonInput(){
-  if(digitalRead(6) == HIGH){
-    digitalWrite(18, LOW);
-    Keyboard.release('w');
+  if(digitalRead(9) == HIGH){
+    XInput.release(BUTTON_Y);
   }
   else{
-    digitalWrite(18, HIGH);
-    Keyboard.press('w');
-  }
-
-  if(digitalRead(7) == HIGH){
-    digitalWrite(19, LOW);
-    Keyboard.release('a');
-  }
-  else{
-    digitalWrite(19, HIGH);
-    Keyboard.press('a');
+    XInput.press(BUTTON_Y);
   }
 
   if(digitalRead(8) == HIGH){
-    digitalWrite(20, LOW);
-    Keyboard.release('s');
+    XInput.release(BUTTON_X);
   }
   else{
-    digitalWrite(20, HIGH);
-    Keyboard.press('s');
+    XInput.press(BUTTON_X);
   }
 
-  if(digitalRead(9) == HIGH){
-    digitalWrite(21, LOW);
-    Keyboard.release('d');
+  if(digitalRead(7) == HIGH){
+    XInput.release(BUTTON_A);
   }
   else{
-    digitalWrite(21, HIGH);
-    Keyboard.press('d');
+    XInput.press(BUTTON_A);
   }
-  Serial.println("  ");
+
+  if(digitalRead(6) == HIGH){
+    XInput.release(BUTTON_B);
+  }
+  else{
+    XInput.press(BUTTON_B);
+  }
 }
