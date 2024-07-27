@@ -79,7 +79,7 @@ void setup() {
     delay(30);
   }
   delay(1000);
-  strip.fill(black, 0, 30);
+  strip.fill(magenta, 0, 30);
 
 ///  touchCalibrate();
 }
@@ -198,12 +198,24 @@ void loop() {
 
   //Slide status
   if(!iftouched){
+    strip.fill(magenta, 0, 30);
     XInput.release(TRIGGER_RIGHT);
     XInput.release(TRIGGER_LEFT);
     XInput.release(BUTTON_RB);
     XInput.release(BUTTON_LB);
+    strip.show();
   }
   else{
+    for(int i=0;i<30;i++){
+      if(touchpad[i]){
+        strip.setPixelColor(29-i, magenta);
+      }
+      else{
+        strip.setPixelColor(29-i, black);
+      }
+    }
+    strip.show();
+
     switch(direction1){
       case -2:{
         XInput.release(BUTTON_RB);
@@ -260,12 +272,12 @@ void touchpadReader(){
     // it if *is* touched and *wasnt* touched before, alert!
     if ((currtouched1 & _BV(i)) && !(lasttouched1 & _BV(i)) ) {
       touchpad[i] = 1;
-      strip.setPixelColor(29-i, magenta);
+//      strip.setPixelColor(29-i, black);
     }
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched1 & _BV(i)) && (lasttouched1 & _BV(i)) ) {
       touchpad[i] = 0;
-      strip.setPixelColor(29-i, black);
+//      strip.setPixelColor(29-i, magenta);
     }
   }
 
@@ -275,12 +287,12 @@ void touchpadReader(){
     // it if *is* touched and *wasnt* touched before, alert!
     if ((currtouched2 & _BV(i)) && !(lasttouched2 & _BV(i)) ) {
       touchpad[i+12] = 1;
-      strip.setPixelColor(17-i, magenta);
+//      strip.setPixelColor(17-i, black);
     }
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched2 & _BV(i)) && (lasttouched2 & _BV(i)) ) {
       touchpad[i+12] = 0;
-      strip.setPixelColor(17-i, black);
+//      strip.setPixelColor(17-i, magenta);
     }
   }
 
@@ -290,15 +302,15 @@ void touchpadReader(){
     // it if *is* touched and *wasnt* touched before, alert!
     if ((currtouched3 & _BV(i)) && !(lasttouched3 & _BV(i)) ) {
       touchpad[i+24] = 1;
-      strip.setPixelColor(5-i, magenta);
+//      strip.setPixelColor(5-i, black);
     }
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched3 & _BV(i)) && (lasttouched3 & _BV(i)) ) {
       touchpad[i+24] = 0;
-      strip.setPixelColor(5-i, black);
+//      strip.setPixelColor(5-i, magenta);
     }
   }
-  strip.show();
+//  strip.show();
 }
 
 int slideDetect(int x, int y){
