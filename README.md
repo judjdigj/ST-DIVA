@@ -1,5 +1,7 @@
 # ST-DIVA
 DIY Controller for Project DIVA. Based on Arduino Leonardo/SparkFun Pro Micro.
+![alt text](20240723_020924.jpg)
+![alt text](20240713_185500.jpg)
 
 ## Wiring
 ### MPR121
